@@ -1,0 +1,54 @@
+# Environment dan rahasia
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.coverage
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Database dan data runtime
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+/data/
+backups/
+
+# Logs dan file sementara
+*.log
+*.pid
+*.tmp
+.smoke-password
+.protected-containers-*.json
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Additional credential and build guards
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.tsbuildinfo
+
+*.egg-info/

@@ -1,0 +1,1 @@
+"""Derajat Work backend application."""

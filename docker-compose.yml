@@ -1,0 +1,71 @@
+name: derajat-work
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DERAJAT_APP_NAME: ${APP_NAME:-Derajat Work}
+      DERAJAT_ENVIRONMENT: ${APP_ENV:-production}
+      DERAJAT_DATABASE_URL: ${DATABASE_URL:-sqlite:////data/derajat.db}
+      DERAJAT_SECRET_KEY: ${APP_SECRET_KEY:?APP_SECRET_KEY wajib diatur di .env}
+      DERAJAT_COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DERAJAT_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3100,http://127.0.0.1:3100}
+      DERAJAT_TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+
+    volumes:
+      - derajat_sqlite:/data
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3); raise SystemExit(0 if 200 <= r.status < 300 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      BACKEND_INTERNAL_URL: http://backend:8000
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3100}:3000"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3000/',r=>{r.resume();process.exit(r.statusCode>=200&&r.statusCode<400?0:1)}).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  derajat_sqlite:
+    name: ${SQLITE_VOLUME_NAME:-derajat_sqlite}

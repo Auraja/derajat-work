@@ -1,0 +1,2 @@
+import { ButtonLink } from "@/components/ui";
+export default function NotFound() { return <main className="flex min-h-screen items-center justify-center bg-canvas p-6"><div className="text-center"><p className="text-sm font-bold uppercase tracking-widest text-accent">404</p><h1 className="mt-3 font-serif text-4xl text-primary">Halaman tidak ditemukan</h1><p className="mt-3 text-muted">Alamat mungkin berubah atau tidak lagi tersedia.</p><ButtonLink href="/dashboard" className="mt-7">Kembali ke dashboard</ButtonLink></div></main>; }

@@ -1,0 +1,12 @@
+"use client";
+import { useParams } from "next/navigation";
+import { ArrowRightIcon, ClipboardDocumentListIcon, DocumentTextIcon, PresentationChartBarIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { Breadcrumb, ButtonLink, PageHeader } from "@/components/ui";
+
+export default function TeachingOverview() { const { slug } = useParams<{slug:string}>(); const base=`/workspaces/${slug}/teaching`; const tools=[
+  ["Presentation Slides","Ubah topik menjadi struktur presentasi yang jelas.","/slides",PresentationChartBarIcon],
+  ["Learning Module","Susun modul pembelajaran terarah.","/modules",DocumentTextIcon],
+  ["Quiz Generator","Buat rancangan kuis sesuai tingkat kesulitan.","/quizzes",QuestionMarkCircleIcon],
+  ["Assignment","Rancang tugas beserta konteks penilaiannya.","/assignments",ClipboardDocumentListIcon],
+]; return <><Breadcrumb items={[{label:"Workspace",href:`/workspaces/${slug}`},{label:"Teaching"}]}/><PageHeader title="Teaching" description="Siapkan pengalaman belajar dari rencana sesi hingga bahan ajar." actions={<ButtonLink href={`${base}/sessions/new`}>Sesi baru</ButtonLink>}/><section className="surface p-6"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><p className="text-xs font-bold uppercase tracking-wider text-accent">Fokus berikutnya</p><h2 className="mt-2 font-serif text-2xl text-primary">Mulai dari sebuah sesi</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Tetapkan tujuan, audiens, dan durasi. Gunakan generator sebagai alat bantu setelah konteks sesi jelas.</p></div><ButtonLink href={`${base}/sessions` } variant="secondary">Lihat semua sesi</ButtonLink></div></section><h2 className="mt-8 mb-4 font-serif text-2xl text-primary">Perangkat perencanaan</h2><div className="grid gap-4 md:grid-cols-2">{tools.map(([name,desc,suffix,Icon]) => { const ToolIcon=Icon as typeof PresentationChartBarIcon; return <Link key={name as string} href={`${base}${suffix}`} className="surface group flex gap-4 p-5 transition hover:border-[#bcae98]"><span className="h-fit rounded-lg bg-[#e7e9e1] p-3 text-secondary"><ToolIcon className="h-5 w-5"/></span><div className="min-w-0 flex-1"><h3 className="font-serif text-lg text-primary">{name as string}</h3><p className="mt-1 text-sm leading-6 text-muted">{desc as string}</p></div><ArrowRightIcon className="mt-1 h-4 w-4 text-muted transition group-hover:translate-x-1"/></Link>;})}</div></>; }

@@ -1,0 +1,1 @@
+"use client"; import { useParams } from "next/navigation"; import { GeneratorForm } from "@/components/generator-form"; export default function Page(){const {slug}=useParams<{slug:string}>();return <GeneratorForm kind="module" slug={slug}/>}

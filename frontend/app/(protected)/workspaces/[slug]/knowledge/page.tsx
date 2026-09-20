@@ -1,0 +1,1 @@
+"use client";import {useParams} from "next/navigation";import {ComingSoonModule} from "@/components/coming-soon-module";export default function Page(){const {slug}=useParams<{slug:string}>();return <ComingSoonModule slug={slug} name="Knowledge Base" description="Bangun koleksi pengetahuan bersama."/>}

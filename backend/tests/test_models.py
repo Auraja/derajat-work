@@ -1,0 +1,92 @@
+from app.core.database import Base
+
+
+def test_database_contains_all_required_tables_and_columns():
+    expected = {
+        "users": {"id", "email", "password_hash", "name", "created_at", "updated_at"},
+        "workspaces": {
+            "id",
+            "name",
+            "slug",
+            "description",
+            "workspace_type",
+            "created_at",
+            "updated_at",
+        },
+        "workspace_members": {"id", "workspace_id", "user_id", "role", "created_at"},
+        "modules": {
+            "id",
+            "workspace_id",
+            "name",
+            "slug",
+            "module_type",
+            "is_enabled",
+            "created_at",
+            "updated_at",
+        },
+        "teaching_sessions": {
+            "id",
+            "workspace_id",
+            "title",
+            "topic",
+            "description",
+            "audience",
+            "difficulty",
+            "duration_minutes",
+            "session_type",
+            "status",
+            "session_date",
+            "notes",
+            "created_at",
+            "updated_at",
+        },
+        "materials": {
+            "id",
+            "workspace_id",
+            "session_id",
+            "title",
+            "description",
+            "material_type",
+            "status",
+            "content",
+            "file_path",
+            "metadata_json",
+            "created_at",
+            "updated_at",
+        },
+        "templates": {
+            "id",
+            "workspace_id",
+            "name",
+            "description",
+            "template_type",
+            "category",
+            "config_json",
+            "created_at",
+            "updated_at",
+        },
+        "generated_files": {
+            "id",
+            "workspace_id",
+            "material_id",
+            "file_name",
+            "file_type",
+            "file_path",
+            "file_size",
+            "created_at",
+        },
+        "activity_logs": {
+            "id",
+            "user_id",
+            "workspace_id",
+            "action",
+            "entity_type",
+            "entity_id",
+            "metadata_json",
+            "created_at",
+        },
+    }
+
+    assert expected.keys() <= Base.metadata.tables.keys()
+    for table_name, columns in expected.items():
+        assert columns <= set(Base.metadata.tables[table_name].columns.keys())
