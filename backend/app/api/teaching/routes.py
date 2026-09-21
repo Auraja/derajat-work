@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.core.database import get_db
 from app.models import Module, TeachingSession, TeachingStatus, User, WorkspaceMember
 from app.schemas.teaching import (
     TeachingSessionCreate,
+    TeachingSessionImport,
     TeachingSessionPage,
     TeachingSessionRead,
     TeachingSessionUpdate,
@@ -107,8 +109,10 @@ def create_teaching_session(
 ) -> TeachingSession:
     require_workspace_access(session, workspace_id, user, write=True)
     _validate_module(session, payload.module_id, workspace_id)
+    data = payload.model_dump()
+    data["activities"] = jsonable_encoder(data["activities"])
     teaching_session = TeachingSession(
-        workspace_id=workspace_id, created_by_id=user.id, **payload.model_dump()
+        workspace_id=workspace_id, created_by_id=user.id, **data
     )
     session.add(teaching_session)
     session.flush()
@@ -123,6 +127,45 @@ def create_teaching_session(
     session.commit()
     session.refresh(teaching_session)
     return teaching_session
+
+
+@router.post(
+    "/workspaces/{workspace_id}/teaching/sessions/import",
+    response_model=list[TeachingSessionRead],
+    status_code=status.HTTP_201_CREATED,
+)
+def import_teaching_sessions(
+    workspace_id: int,
+    payload: TeachingSessionImport,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> list[TeachingSession]:
+    require_workspace_access(session, workspace_id, user, write=True)
+    created: list[TeachingSession] = []
+    for item in payload.sessions:
+        _validate_module(session, item.module_id, workspace_id)
+        data = item.model_dump()
+        data["activities"] = jsonable_encoder(data["activities"])
+        teaching_session = TeachingSession(
+            workspace_id=workspace_id,
+            created_by_id=user.id,
+            **data,
+        )
+        session.add(teaching_session)
+        session.flush()
+        created.append(teaching_session)
+        log_activity(
+            session,
+            action="teaching_session.imported",
+            user_id=user.id,
+            workspace_id=workspace_id,
+            entity_type="teaching_session",
+            entity_id=teaching_session.id,
+        )
+    session.commit()
+    for item in created:
+        session.refresh(item)
+    return created
 
 
 @router.get("/teaching/sessions/{session_id}", response_model=TeachingSessionRead)

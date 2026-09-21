@@ -5,6 +5,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.teaching_session import TeachingStatus
 
 
+class TeachingActivity(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: str = Field(min_length=1, max_length=50)
+    startDate: date
+    endDate: date
+    mode: str | None = Field(default=None, max_length=30)
+
+    @field_validator("endDate")
+    @classmethod
+    def end_after_start(cls, value: date, info):
+        start = info.data.get("startDate")
+        if start and value < start:
+            raise ValueError("endDate must not be before startDate")
+        return value
+
+
 class TeachingSessionBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -14,6 +31,8 @@ class TeachingSessionBase(BaseModel):
     audience: str | None = Field(default=None, max_length=240)
     difficulty: str | None = Field(default=None, max_length=40)
     instructor: str | None = Field(default=None, max_length=200)
+    instructors: list[str] = Field(default_factory=list)
+    activities: list[TeachingActivity] = Field(default_factory=list)
     scheduled_at: datetime | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     session_type: str | None = Field(default=None, max_length=80)
@@ -41,6 +60,8 @@ class TeachingSessionUpdate(BaseModel):
     audience: str | None = Field(default=None, max_length=240)
     difficulty: str | None = Field(default=None, max_length=40)
     instructor: str | None = Field(default=None, max_length=200)
+    instructors: list[str] = Field(default_factory=list)
+    activities: list[TeachingActivity] = Field(default_factory=list)
     scheduled_at: datetime | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     session_type: str | None = Field(default=None, max_length=80)
@@ -75,3 +96,9 @@ class TeachingSessionPage(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class TeachingSessionImport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    sessions: list[TeachingSessionCreate] = Field(min_length=1)

@@ -6,6 +6,7 @@ export interface Skill extends Entity { workspace_id: string | number; name: str
 export interface OrchestrationStep { position: number; skill: Skill }
 export interface Orchestration extends Entity { workspace_id: string | number; name: string; description?: string; steps: OrchestrationStep[] }
 export type TeachingSessionStatus = "draft" | "preparing" | "ready" | "scheduled" | "in_progress" | "completed" | "cancelled" | "archived";
+export interface TeachingActivity { type: string; startDate: string; endDate: string; mode?: string | null }
 export interface TeachingSession {
   id: number;
   workspace_id: number;
@@ -18,6 +19,8 @@ export interface TeachingSession {
   audience: string | null;
   difficulty: string | null;
   instructor: string | null;
+  instructors: string[];
+  activities: TeachingActivity[];
   scheduled_at: string | null;
   duration_minutes: number | null;
   session_type: string | null;

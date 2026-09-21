@@ -2,7 +2,7 @@ import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Date, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin
@@ -43,6 +43,8 @@ class TeachingSession(TimestampMixin, Base):
     audience: Mapped[str | None] = mapped_column(String(240))
     difficulty: Mapped[str | None] = mapped_column(String(40), index=True)
     instructor: Mapped[str | None] = mapped_column(String(200))
+    instructors: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    activities: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list, nullable=False)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     duration_minutes: Mapped[int | None] = mapped_column(Integer)
     session_type: Mapped[str | None] = mapped_column(String(80), index=True)

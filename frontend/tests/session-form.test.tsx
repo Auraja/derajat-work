@@ -50,6 +50,8 @@ describe("SessionForm", () => {
       audience: null,
       difficulty: null,
       instructor: null,
+      instructors: [],
+      activities: [],
       scheduled_at: null,
       duration_minutes: 60,
       session_type: null,

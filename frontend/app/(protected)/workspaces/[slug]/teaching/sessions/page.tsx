@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { normalizePagination } from "@/lib/pagination";
 import { sessionSortParameter } from "@/lib/resource-routes";
 import { formatTeachingSessionSchedule } from "@/lib/session-schedule";
+import { TeachingScheduleTools } from "@/components/teaching-schedule-tools";
 import {
   teachingStatusLabel,
   teachingStatusOptions,
@@ -124,6 +125,7 @@ export default function SessionsPage() {
           </ButtonLink>
         }
       />
+      <TeachingScheduleTools workspaceId={workspace?.id ? Number(workspace.id) : 0} />
       {workspaceError && (
         <div role="alert" className="error-box mb-5 flex items-center justify-between gap-4">
           <span>{workspaceError}</span>
