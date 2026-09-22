@@ -13,8 +13,12 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     with op.batch_alter_table("teaching_sessions") as batch_op:
-        batch_op.add_column(sa.Column("instructors", sa.JSON(), nullable=False, server_default="[]"))
-        batch_op.add_column(sa.Column("activities", sa.JSON(), nullable=False, server_default="[]"))
+        batch_op.add_column(
+            sa.Column("instructors", sa.JSON(), nullable=False, server_default="[]")
+        )
+        batch_op.add_column(
+            sa.Column("activities", sa.JSON(), nullable=False, server_default="[]")
+        )
 
 
 def downgrade() -> None:

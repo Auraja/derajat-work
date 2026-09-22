@@ -3,6 +3,7 @@
 import {
   ArrowRightIcon,
   BookOpenIcon,
+  CalendarDaysIcon,
   FolderIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
@@ -23,6 +24,7 @@ const moduleLabels: Record<string, string> = {
   research: "Riset",
   notes: "Catatan",
   clients: "Klien",
+  "teaching-sessions": "Sesi Mengajar",
 };
 
 export default function WorkspaceOverview() {
@@ -110,6 +112,24 @@ export default function WorkspaceOverview() {
     );
   }
 
+  const backendModules = (workspace.modules ?? []).filter(
+    (module) => module.slug !== "teaching-sessions",
+  );
+  const visibleModules = backendModules.flatMap((module) => [
+    module,
+    ...(module.slug === "teaching"
+      ? [
+          {
+            id: `${module.id}-sessions`,
+            name: "Sesi Mengajar",
+            slug: "teaching-sessions",
+            description:
+              "Kelola jadwal, pengajar, lokasi, dan peserta dalam satu daftar ringkas.",
+          },
+        ]
+      : []),
+  ]);
+
   return (
     <div className="space-y-14">
       <div>
@@ -129,11 +149,15 @@ export default function WorkspaceOverview() {
             <p className="eyebrow">Area kerja</p>
             <h2 id="modules-heading" className="editorial-title mt-2 text-3xl">Modul</h2>
           </div>
-          <span className="private-mark">{workspace.modules?.length ?? 0} aktif</span>
+          <span className="private-mark">{backendModules.length} aktif</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {(workspace.modules ?? []).map((module, index) => {
-            const Icon = module.slug === "teaching" ? BookOpenIcon : FolderIcon;
+          {visibleModules.map((module, index) => {
+            const Icon = module.slug === "teaching"
+              ? BookOpenIcon
+              : module.slug === "teaching-sessions"
+                ? CalendarDaysIcon
+                : FolderIcon;
             return (
               <Link
                 key={module.id}

@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_workspace_access
@@ -74,7 +74,10 @@ def list_teaching_sessions(
                 TeachingSession.topic.ilike(pattern),
                 TeachingSession.description.ilike(pattern),
                 TeachingSession.instructor.ilike(pattern),
+                cast(TeachingSession.instructors, String).ilike(pattern),
                 TeachingSession.session_type.ilike(pattern),
+                TeachingSession.location.ilike(pattern),
+                TeachingSession.participant_label.ilike(pattern),
             )
         )
     total = session.scalar(select(func.count()).select_from(TeachingSession).where(*filters)) or 0
@@ -110,6 +113,7 @@ def create_teaching_session(
     require_workspace_access(session, workspace_id, user, write=True)
     _validate_module(session, payload.module_id, workspace_id)
     data = payload.model_dump()
+    data["source"] = "manual"
     data["activities"] = jsonable_encoder(data["activities"])
     teaching_session = TeachingSession(
         workspace_id=workspace_id, created_by_id=user.id, **data
@@ -145,6 +149,7 @@ def import_teaching_sessions(
     for item in payload.sessions:
         _validate_module(session, item.module_id, workspace_id)
         data = item.model_dump()
+        data["source"] = "external_ai"
         data["activities"] = jsonable_encoder(data["activities"])
         teaching_session = TeachingSession(
             workspace_id=workspace_id,
@@ -188,6 +193,8 @@ def update_teaching_session(
     require_workspace_access(session, teaching_session.workspace_id, user, write=True)
     updates = payload.model_dump(exclude_unset=True)
     _validate_module(session, updates.get("module_id"), teaching_session.workspace_id)
+    if "activities" in updates:
+        updates["activities"] = jsonable_encoder(updates["activities"])
     for field, value in updates.items():
         setattr(teaching_session, field, value)
     log_activity(

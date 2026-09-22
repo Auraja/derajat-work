@@ -15,7 +15,6 @@ describe("TeachingLayout", () => {
     const navigation = screen.getByRole("navigation", { name: "Navigasi pengajaran" });
     for (const label of [
       "Ringkasan",
-      "Sesi",
       "Materi",
       "Template",
       "Slide",
@@ -26,5 +25,6 @@ describe("TeachingLayout", () => {
     ]) {
       expect(navigation).toHaveTextContent(label);
     }
+    expect(navigation).not.toHaveTextContent("Sesi");
   });
 });

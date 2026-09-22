@@ -1,6 +1,7 @@
 from datetime import date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from app.models.teaching_session import TeachingStatus
 
@@ -13,6 +14,14 @@ class TeachingActivity(BaseModel):
     endDate: date
     mode: str | None = Field(default=None, max_length=30)
 
+    @field_validator("type")
+    @classmethod
+    def activity_type_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("activity type cannot be blank")
+        return value
+
     @field_validator("endDate")
     @classmethod
     def end_after_start(cls, value: date, info):
@@ -23,12 +32,24 @@ class TeachingActivity(BaseModel):
 
 
 class TeachingSessionBase(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     title: str = Field(min_length=1, max_length=240)
     topic: str | None = Field(default=None, max_length=240)
     description: str | None = None
     audience: str | None = Field(default=None, max_length=240)
+    location: str | None = Field(default=None, max_length=240)
+    participant_count: int | None = Field(
+        default=None,
+        ge=0,
+        validation_alias=AliasChoices("participant_count", "participantCount"),
+    )
+    participant_label: str | None = Field(
+        default=None,
+        max_length=240,
+        validation_alias=AliasChoices("participant_label", "participantLabel"),
+    )
+    source: Literal["manual", "external_ai"] = "manual"
     difficulty: str | None = Field(default=None, max_length=40)
     instructor: str | None = Field(default=None, max_length=200)
     instructors: list[str] = Field(default_factory=list)
@@ -52,16 +73,28 @@ class TeachingSessionCreate(TeachingSessionBase):
 
 
 class TeachingSessionUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     title: str | None = Field(default=None, min_length=1, max_length=240)
     topic: str | None = Field(default=None, max_length=240)
     description: str | None = None
     audience: str | None = Field(default=None, max_length=240)
+    location: str | None = Field(default=None, max_length=240)
+    participant_count: int | None = Field(
+        default=None,
+        ge=0,
+        validation_alias=AliasChoices("participant_count", "participantCount"),
+    )
+    participant_label: str | None = Field(
+        default=None,
+        max_length=240,
+        validation_alias=AliasChoices("participant_label", "participantLabel"),
+    )
+
     difficulty: str | None = Field(default=None, max_length=40)
     instructor: str | None = Field(default=None, max_length=200)
-    instructors: list[str] = Field(default_factory=list)
-    activities: list[TeachingActivity] = Field(default_factory=list)
+    instructors: list[str] | None = None
+    activities: list[TeachingActivity] | None = None
     scheduled_at: datetime | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     session_type: str | None = Field(default=None, max_length=80)
@@ -69,6 +102,20 @@ class TeachingSessionUpdate(BaseModel):
     status: TeachingStatus | None = None
     notes: str | None = None
     module_id: int | None = None
+
+    @field_validator("title", "status")
+    @classmethod
+    def required_fields_cannot_be_null(cls, value):
+        if value is None:
+            raise ValueError("required fields cannot be null")
+        return value
+
+    @field_validator("instructors", "activities")
+    @classmethod
+    def schedule_lists_cannot_be_null(cls, value):
+        if value is None:
+            raise ValueError("schedule lists cannot be null")
+        return value
 
     @field_validator("status")
     @classmethod
@@ -98,7 +145,29 @@ class TeachingSessionPage(BaseModel):
     pages: int
 
 
-class TeachingSessionImport(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+class TeachingSessionImportItem(TeachingSessionCreate):
+    title: str = Field(min_length=1, max_length=240)
+    instructors: list[str] = Field(default=..., min_length=1)
+    activities: list[TeachingActivity] = Field(default=..., min_length=1)
 
-    sessions: list[TeachingSessionCreate] = Field(min_length=1)
+    @field_validator("title")
+    @classmethod
+    def import_title_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("title cannot be blank")
+        return value
+
+    @field_validator("instructors")
+    @classmethod
+    def import_instructors_cannot_be_blank(cls, value: list[str]) -> list[str]:
+        names = [name.strip() for name in value]
+        if any(not name for name in names):
+            raise ValueError("instructors cannot contain blank names")
+        return names
+
+
+class TeachingSessionImport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sessions: list[TeachingSessionImportItem] = Field(min_length=1, max_length=100)

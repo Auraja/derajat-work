@@ -57,6 +57,25 @@ def test_alembic_schema_matches_model_metadata(tmp_path):
     assert "No new upgrade operations detected" in checked.stdout
 
 
+def test_teaching_session_contract_migration_adds_import_fields(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'teaching-contract.db'}"
+    result = subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "DATABASE_URL": database_url},
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    columns = {
+        item["name"]: item
+        for item in inspect(create_engine(database_url)).get_columns("teaching_sessions")
+    }
+    assert {"location", "participant_count", "participant_label", "source"} <= columns.keys()
+    assert columns["source"]["nullable"] is False
+
+
 def test_global_kanban_migration_upgrades_populated_legacy_board(tmp_path):
     database_url = f"sqlite:///{tmp_path / 'populated.db'}"
     env = {**os.environ, "DATABASE_URL": database_url}

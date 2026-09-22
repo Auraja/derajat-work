@@ -41,6 +41,12 @@ class TeachingSession(TimestampMixin, Base):
     topic: Mapped[str | None] = mapped_column(String(240), index=True)
     description: Mapped[str | None] = mapped_column(Text)
     audience: Mapped[str | None] = mapped_column(String(240))
+    location: Mapped[str | None] = mapped_column(String(240))
+    participant_count: Mapped[int | None] = mapped_column(Integer)
+    participant_label: Mapped[str | None] = mapped_column(String(240))
+    source: Mapped[str] = mapped_column(
+        String(30), default="manual", server_default="manual", nullable=False
+    )
     difficulty: Mapped[str | None] = mapped_column(String(40), index=True)
     instructor: Mapped[str | None] = mapped_column(String(200))
     instructors: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)

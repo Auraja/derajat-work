@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import SessionDetail from "@/app/(protected)/workspaces/[slug]/teaching/sessions/[id]/page";
+import SessionDetail from "@/app/(protected)/workspaces/[slug]/teaching-sessions/[id]/page";
 import { api } from "@/lib/api";
 
+const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   useParams: () => ({ slug: "bisa-ai", id: "7" }),
-  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ replace, refresh: vi.fn() }),
 }));
 vi.mock("@/lib/api", () => ({ api: vi.fn() }));
 vi.mock("@/components/ui/toast", () => ({
@@ -20,6 +21,7 @@ describe("SessionDetail", () => {
   beforeEach(() => {
     apiMock.mockReset();
     show.mockReset();
+    replace.mockReset();
   });
 
   it("describes deletion as archiving and confirms the archive action", async () => {
@@ -36,6 +38,7 @@ describe("SessionDetail", () => {
       expect(apiMock).toHaveBeenCalledWith("/teaching/sessions/7", { method: "DELETE" }),
     );
     expect(show).toHaveBeenCalledWith("Sesi berhasil diarsipkan.");
+    expect(replace).toHaveBeenCalledWith("/workspaces/bisa-ai/teaching-sessions");
   });
 
   it("replaces a failed load with a retry action", async () => {
@@ -81,5 +84,35 @@ describe("SessionDetail", () => {
 
     expect(await screen.findByText("Berlangsung")).toBeInTheDocument();
     expect(screen.queryByText("in_progress")).not.toBeInTheDocument();
+  });
+
+  it("shows participant information, instructors, location, and every activity", async () => {
+    apiMock.mockResolvedValue({
+      id: 7,
+      title: "Kelas lengkap",
+      status: "scheduled",
+      session_type: "class",
+      location: "Lab 2",
+      participant_count: 24,
+      participant_label: "Mahasiswa",
+      audience: "Semester 3",
+      instructors: ["Ayu", "Bima"],
+      activities: [
+        { type: "workshop", startDate: "2026-10-10", endDate: "2026-10-11", mode: "offline" },
+        { type: "mentoring", startDate: "2026-10-12", endDate: "2026-10-12", mode: "online" },
+      ],
+    });
+
+    render(<SessionDetail />);
+
+    expect(await screen.findByText("Lab 2")).toBeInTheDocument();
+    const pageHeader = screen.getByRole("heading", { name: "Kelas lengkap", level: 1 }).closest("header")!;
+    expect(pageHeader).toHaveTextContent("workshop");
+    expect(pageHeader).not.toHaveTextContent("class");
+    expect(screen.getByText("24 Mahasiswa")).toBeInTheDocument();
+    expect(screen.getByText("Semester 3")).toBeInTheDocument();
+    expect(screen.getByText("Ayu, Bima")).toBeInTheDocument();
+    expect(screen.getAllByText("workshop")).toHaveLength(2);
+    expect(screen.getByText("mentoring")).toBeInTheDocument();
   });
 });

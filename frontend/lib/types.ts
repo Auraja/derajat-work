@@ -17,6 +17,10 @@ export interface TeachingSession {
   topic: string | null;
   description: string | null;
   audience: string | null;
+  location: string | null;
+  participant_count: number | null;
+  participant_label: string | null;
+  source: "manual" | "external_ai";
   difficulty: string | null;
   instructor: string | null;
   instructors: string[];

@@ -201,3 +201,214 @@ def test_teaching_session_supports_requested_domain_fields(auth_client):
     assert response.json()["difficulty"] == "beginner"
     assert response.json()["session_type"] == "workshop"
     assert response.json()["session_date"] == "2026-09-10"
+
+
+def test_teaching_session_retains_external_import_contract_and_aliases(auth_client):
+    workspace = workspace_id(auth_client)
+    response = auth_client.post(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions/import",
+        json={
+            "sessions": [
+                {
+                    "title": "Kelas AI eksternal",
+                    "location": "Lab 2",
+                    "participantCount": 24,
+                    "participantLabel": "Mahasiswa semester 3",
+                    "source": "external_ai",
+                    "instructors": ["Ayu", "Bima"],
+                    "activities": [
+                        {
+                            "type": "workshop",
+                            "startDate": "2026-10-10",
+                            "endDate": "2026-10-11",
+                            "mode": "offline",
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 201
+    saved = response.json()[0]
+    assert saved["location"] == "Lab 2"
+    assert saved["participant_count"] == 24
+    assert saved["participant_label"] == "Mahasiswa semester 3"
+    assert saved["source"] == "external_ai"
+    assert saved["instructors"] == ["Ayu", "Bima"]
+    assert saved["activities"][0]["type"] == "workshop"
+
+
+def test_teaching_session_defaults_source_and_patch_preserves_schedule_lists(auth_client):
+    workspace = workspace_id(auth_client)
+    created = create_session(
+        auth_client,
+        workspace,
+        instructors=["Ayu"],
+        activities=[
+            {
+                "type": "class",
+                "startDate": "2026-10-10",
+                "endDate": "2026-10-10",
+                "mode": "online",
+            }
+        ],
+    )
+    assert created.status_code == 201
+    assert created.json()["source"] == "manual"
+
+    updated = auth_client.patch(
+        f"/api/v1/teaching/sessions/{created.json()['id']}",
+        json={"location": "Zoom"},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["location"] == "Zoom"
+    assert updated.json()["instructors"] == ["Ayu"]
+    assert updated.json()["activities"][0]["mode"] == "online"
+
+
+def test_teaching_list_searches_location_and_participant_label(auth_client):
+    workspace = workspace_id(auth_client)
+    create_session(
+        auth_client,
+        workspace,
+        title="Kelas privat",
+        location="Kampus Merdeka",
+        participant_label="Peserta beasiswa",
+    )
+
+    by_location = auth_client.get(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions",
+        params={"search": "merdeka"},
+    )
+    by_participant = auth_client.get(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions",
+        params={"search": "beasiswa"},
+    )
+
+    assert by_location.status_code == 200
+    assert by_location.json()["total"] == 1
+    assert by_participant.status_code == 200
+    assert by_participant.json()["total"] == 1
+
+
+def test_teaching_list_searches_structured_instructors(auth_client):
+    workspace = workspace_id(auth_client)
+    create_session(
+        auth_client,
+        workspace,
+        title="Kelas bersama",
+        instructor=None,
+        instructors=["Ayu Pratama", "Bima"],
+    )
+
+    response = auth_client.get(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions",
+        params={"search": "ayu"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["instructors"] == ["Ayu Pratama", "Bima"]
+
+
+@pytest.mark.parametrize("field", ["title", "status", "source"])
+def test_teaching_patch_rejects_null_for_non_nullable_fields(auth_client, field):
+    workspace = workspace_id(auth_client)
+    created = create_session(auth_client, workspace)
+
+    response = auth_client.patch(
+        f"/api/v1/teaching/sessions/{created.json()['id']}",
+        json={field: None},
+    )
+
+    assert response.status_code == 422
+
+
+def test_teaching_server_controls_source_provenance(auth_client):
+    workspace = workspace_id(auth_client)
+
+    manual = create_session(auth_client, workspace, source="external_ai")
+    imported = auth_client.post(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions/import",
+        json={
+            "sessions": [
+                {
+                    "title": "Import provenance",
+                    "source": "manual",
+                    "instructors": ["Ayu"],
+                    "activities": [
+                        {
+                            "type": "class",
+                            "startDate": "2026-10-10",
+                            "endDate": "2026-10-10",
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert manual.status_code == 201
+    assert manual.json()["source"] == "manual"
+    assert imported.status_code == 201
+    assert imported.json()[0]["source"] == "external_ai"
+
+
+def test_teaching_import_rejects_unknown_fields(auth_client):
+    workspace = workspace_id(auth_client)
+    response = auth_client.post(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions/import",
+        json={
+            "sessions": [
+                {
+                    "title": "Strict import",
+                }
+            ],
+            "unexpectedRoot": True,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"title": "   "},
+        {"instructors": []},
+        {"instructors": ["   "]},
+        {"activities": []},
+        {
+            "activities": [
+                {
+                    "type": "   ",
+                    "startDate": "2026-10-10",
+                    "endDate": "2026-10-10",
+                }
+            ]
+        },
+    ],
+)
+def test_teaching_import_rejects_empty_required_schedule_values(auth_client, overrides):
+    workspace = workspace_id(auth_client)
+    item = {
+        "title": "Strict import",
+        "instructors": ["Ayu"],
+        "activities": [
+            {
+                "type": "class",
+                "startDate": "2026-10-10",
+                "endDate": "2026-10-10",
+            }
+        ],
+    }
+    item.update(overrides)
+
+    response = auth_client.post(
+        f"/api/v1/workspaces/{workspace}/teaching/sessions/import",
+        json={"sessions": [item]},
+    )
+
+    assert response.status_code == 422

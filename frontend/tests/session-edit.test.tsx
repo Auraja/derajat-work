@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import EditSessionPage from "@/app/(protected)/workspaces/[slug]/teaching/sessions/[id]/edit/page";
+import EditSessionPage from "@/app/(protected)/workspaces/[slug]/teaching-sessions/[id]/edit/page";
 import { api } from "@/lib/api";
 
 vi.mock("next/navigation", () => ({

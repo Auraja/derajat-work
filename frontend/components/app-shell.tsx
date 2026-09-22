@@ -5,6 +5,7 @@ import {
   BookOpenIcon,
   BoltIcon,
   BookmarkSquareIcon,
+  CalendarDaysIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -60,7 +61,9 @@ function NavLink({
   onClick?: () => void;
 }) {
   const pathname = usePathname();
-  const active = href.includes("#") ? false : pathname === href;
+  const active = href.includes("#")
+    ? false
+    : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <Link
       href={href}
@@ -155,15 +158,26 @@ function Sidebar({ close, desktopClose }: { close?: () => void; desktopClose?: (
                       icon={HomeIcon}
                       onClick={close}
                     />
-                    {(workspace.modules ?? []).map((module) => (
+                    {(workspace.modules ?? []).filter((module) => module.slug !== "teaching-sessions").flatMap((module) => [
                       <NavLink
-                        key={module.id}
+                        key={String(module.id)}
                         href={`/workspaces/${workspace.slug}/${module.slug}`}
                         label={moduleLabels[module.slug] ?? module.name}
                         icon={moduleIcons[module.slug] ?? FolderIcon}
                         onClick={close}
-                      />
-                    ))}
+                      />,
+                      ...(module.slug === "teaching"
+                        ? [
+                            <NavLink
+                              key={`${module.id}-sessions`}
+                              href={`/workspaces/${workspace.slug}/teaching-sessions`}
+                              label="Sesi Mengajar"
+                              icon={CalendarDaysIcon}
+                              onClick={close}
+                            />,
+                          ]
+                        : []),
+                    ])}
                     <NavLink
                       href={`/workspaces/${workspace.slug}#skills`}
                       label="Skills"

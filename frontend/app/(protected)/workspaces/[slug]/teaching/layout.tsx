@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 
 const tabs = [
-  ["Ringkasan", ""], ["Sesi", "/sessions"], ["Materi", "/materials"], ["Template", "/templates"], ["Slide", "/slides"], ["Modul", "/modules"], ["Kuis", "/quizzes"], ["Tugas", "/assignments"], ["Rencana pembelajaran", "/lesson-plans"],
+  ["Ringkasan", ""], ["Materi", "/materials"], ["Template", "/templates"], ["Slide", "/slides"], ["Modul", "/modules"], ["Kuis", "/quizzes"], ["Tugas", "/assignments"], ["Rencana pembelajaran", "/lesson-plans"],
 ];
 export default function TeachingLayout({ children }: { children: React.ReactNode }) {
   const { slug } = useParams<{slug:string}>(); const pathname = usePathname(); const base = `/workspaces/${slug}/teaching`;

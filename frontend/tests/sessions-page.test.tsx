@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import SessionsPage from "@/app/(protected)/workspaces/[slug]/teaching/sessions/page";
+import SessionsPage from "@/app/(protected)/workspaces/[slug]/teaching-sessions/page";
 import { api } from "@/lib/api";
 
 vi.mock("next/navigation", () => ({
@@ -62,8 +62,16 @@ describe("SessionsPage", () => {
 
     render(<SessionsPage />);
 
-    expect(screen.getByRole("heading", { name: "Sesi pengajaran", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sesi Mengajar", level: 1 })).toBeInTheDocument();
     expect(await screen.findByText("Belum ada sesi")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tambah sesi" })).toHaveAttribute(
+      "href",
+      "/workspaces/bisa-ai/teaching-sessions/new",
+    );
+    expect(screen.getByRole("link", { name: "Import JSON" })).toHaveAttribute(
+      "href",
+      "/workspaces/bisa-ai/teaching-sessions/import",
+    );
   });
 
   it("shows session_date in the list when scheduled_at is absent", async () => {
@@ -163,5 +171,83 @@ describe("SessionsPage", () => {
     });
     await waitFor(() => expect(screen.queryByText("Hasil lama")).not.toBeInTheDocument());
     expect(screen.getByText("Hasil baru")).toBeInTheDocument();
+  });
+
+  it("trusts server search results instead of hiding valid matches on the current page", async () => {
+    apiMock.mockImplementation(async (path) => {
+      if (path === "/workspaces/bisa-ai") {
+        return { id: 3, name: "BISA AI", slug: "bisa-ai" };
+      }
+      if (path.includes("search=python")) {
+        return {
+          items: [{
+            id: 8,
+            title: "Kelas pemula",
+            description: "Belajar Python dari nol",
+            status: "draft",
+          }],
+          total: 1,
+          page: 1,
+          page_size: 10,
+          pages: 1,
+        };
+      }
+      return { items: [], total: 0, page: 1, page_size: 10, pages: 0 };
+    });
+
+    render(<SessionsPage />);
+    await screen.findByText("Belum ada sesi");
+    fireEvent.change(screen.getByLabelText("Cari sesi"), { target: { value: "python" } });
+
+    expect(await screen.findByText("Kelas pemula")).toBeInTheDocument();
+  });
+
+  it("shows only essential columns with location and audience as secondary metadata", async () => {
+    apiMock.mockImplementation(async (path) => {
+      if (path === "/workspaces/bisa-ai") {
+        return { id: 3, name: "BISA AI", slug: "bisa-ai" };
+      }
+      return {
+        items: [{
+          id: 7,
+          title: "Kelas AI",
+          location: "Lab 2",
+          participant_label: "Mahasiswa",
+          instructors: ["Ayu"],
+          activities: [{ type: "workshop", startDate: "2026-09-10", endDate: "2026-09-11" }],
+          status: "scheduled",
+        }],
+        total: 1,
+        page: 1,
+        page_size: 10,
+        pages: 1,
+      };
+    });
+
+    render(<SessionsPage />);
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual([
+      "Kegiatan", "Jadwal", "Pengajar", "Status", "Aksi",
+    ]);
+    const row = screen.getByText("Kelas AI").closest("tr")!;
+    expect(within(row).getByText("Lab 2")).toBeInTheDocument();
+    expect(within(row).getByText("Mahasiswa")).toBeInTheDocument();
+    expect(within(row).getByText("Ayu")).toBeInTheDocument();
+  });
+
+  it("shows one main view at a time and opens the schedule on demand", async () => {
+    apiMock.mockImplementation(async (path) => {
+      if (path === "/workspaces/bisa-ai") return { id: 3, name: "BISA AI", slug: "bisa-ai" };
+      return { items: [], total: 0, page: 1, page_size: 10, pages: 0 };
+    });
+
+    render(<SessionsPage />);
+    await screen.findByText("Belum ada sesi");
+    expect(screen.queryByLabelText("Bulan jadwal")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Jadwal" }));
+    expect(await screen.findByLabelText("Bulan jadwal")).toBeInTheDocument();
+    expect(screen.queryByText("Belum ada sesi")).not.toBeInTheDocument();
   });
 });
